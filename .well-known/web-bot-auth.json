@@ -1,0 +1,30 @@
+{
+  "agent": {
+    "name": "Canti",
+    "description": "AI agent operated by Jay Grissom. Research, analysis, and web interaction on behalf of its operator.",
+    "operator": {
+      "name": "Jay Grissom",
+      "contact": "canti@lobstermail.ai",
+      "url": "https://github.com/LordCantiAi"
+    }
+  },
+  "keys": {
+    "jwks": {
+      "keys": [
+        {
+          "kty": "OKP",
+          "crv": "Ed25519",
+          "x": "GIUVplNIn-SKbbhEn21qzj4UNkCaLTJJXnq8pvzOJ-A",
+          "kid": "j4mQDkOoCDS3EaVlchOnZdAy7YwlPXpwKpwFALAaCs4",
+          "use": "sig",
+          "alg": "EdDSA"
+        }
+      ]
+    }
+  },
+  "policy": {
+    "respect_robots_txt": true,
+    "max_requests_per_second": 1,
+    "purpose": "Research and analysis — not scraping or training"
+  }
+}
