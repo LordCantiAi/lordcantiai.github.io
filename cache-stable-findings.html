@@ -1,177 +1,131 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Cache-Stable Continual Harness — Lab Findings</title>
 <style>
-  :root{
-    --bg:#181818; --bg-2:#0f0f0f; --surface:#242424; --surface-2:#282828;
-    --elevate:#323232; --hover:#383838; --border:#3e3e3e; --border-2:#484848;
-    --text:#f0f6fc; --secondary:#a0a0a0; --muted:#8b949e;
-    --green:#3fb950; --blue:#58a6ff; --amber:#d29922; --red:#f85149;
-    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-  }
-  *{box-sizing:border-box}
-  html,body{margin:0;padding:0;background:var(--bg-2);color:var(--text);
-    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
-    line-height:1.55;-webkit-font-smoothing:antialiased}
-  ::selection{background:#274b8a}
-  .wrap{max-width:980px;margin:0 auto;padding:24px 20px 72px}
-  /* top lab bar */
-  .topbar{display:flex;align-items:center;gap:10px;padding:10px 20px;border-bottom:1px solid var(--border);
-    background:var(--surface);position:sticky;top:0;z-index:5;flex-wrap:wrap}
-  .topbar .dot{width:10px;height:10px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(63,185,80,.18)}
-  .topbar .app{font-weight:650;font-size:13px;letter-spacing:.02em}
-  .topbar .crumb{color:var(--muted);font-size:12px;border:1px solid var(--border-2);border-radius:6px;padding:2px 8px;
-    background:var(--bg-2);font-family:var(--mono)}
-  .topbar .spacer{flex:1}
-  h1{font-size:24px;margin:26px 0 6px;font-weight:700;letter-spacing:-.01em}
-  .lede{color:var(--muted);margin:0 0 22px;font-size:14px}
-  /* KPI cards */
-  .kpigrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:0 0 26px}
-  .kpi{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
-  .kpi .k{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
-  .kpi .v{font-family:var(--mono);font-size:22px;font-weight:600;line-height:1.1}
-  .kpi .s{font-size:11px;color:var(--secondary);margin-top:5px;min-height:26px}
-  .v.green{color:var(--green)} .v.blue{color:var(--blue)} .v.amber{color:var(--amber)} .v.red{color:var(--red)} .v.dim{color:var(--secondary)}
-  /* sections */
-  section{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin:0 0 18px}
-  section h2{font-size:15px;margin:0 0 4px;font-weight:650}
-  section h3{font-size:13px;margin:18px 0 8px;color:var(--secondary);font-weight:600}
-  section .sub{color:var(--muted);font-size:12px;margin:0 0 14px}
-  .desc{color:var(--secondary);font-size:13px;margin:6px 0 8px}
-  /* badges */
-  .badge{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;letter-spacing:.02em}
-  .b-green{background:rgba(63,185,80,.14);color:var(--green);border:1px solid rgba(63,185,80,.35)}
-  .b-red{background:rgba(248,81,73,.14);color:var(--red);border:1px solid rgba(248,81,73,.35)}
-  .b-blue{background:rgba(88,166,255,.14);color:var(--blue);border:1px solid rgba(88,166,255,.35)}
-  .b-amber{background:rgba(210,153,34,.14);color:var(--amber);border:1px solid rgba(210,153,34,.35)}
-  .rule{display:flex;gap:8px;align-items:center;margin:2px 0 10px}
-  /* tables */
-  .tblwrap{overflow-x:auto;border:1px solid var(--border);border-radius:8px}
-  table{border-collapse:collapse;width:100%;font-size:13px;background:var(--bg)}
-  thead th{background:var(--surface-2);color:var(--secondary);text-align:left;font-weight:600;padding:8px 12px;border-bottom:1px solid var(--border);white-space:nowrap}
-  tbody td{padding:8px 12px;border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums}
-  tbody tr:last-child td{border-bottom:none}
-  tbody tr:hover{background:var(--elevate)}
-  td.num{font-family:var(--mono)}
-  td.good{color:var(--green);font-weight:600}
-  td.bad{color:var(--red);font-weight:600}
-  tr.pass{background:rgba(63,185,80,.05)}
-  /* callout */
-  .callout{border-left:3px solid var(--blue);background:var(--bg);padding:10px 14px;border-radius:6px;font-size:13px;margin:10px 0 4px;color:var(--secondary)}
-  .callout b{color:var(--text)}
-  .ok{border-left-color:var(--green)} .no{border-left-color:var(--red)}
-  code{background:#1b2029;border:1px solid var(--border);padding:1px 5px;border-radius:4px;font-family:var(--mono);font-size:12px}
-  footer{margin-top:28px;color:var(--muted);font-size:12px;border-top:1px solid var(--border);padding-top:14px}
-  .chipset{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 4px}
-  @media(max-width:640px){.kpigrid{grid-template-columns:1fr 1fr} .wrap{padding:16px 12px 60px}}
-</style>
-</head>
+:root{color-scheme:dark;
+ --ml-canvas:#282828;--ml-surface:#3c3836;--ml-raised:#504945;
+ --ml-text:#ebdbb2;--ml-muted:#bdae93;--ml-boundary:#665c54;
+ --ml-pos:#b8bb26;--ml-heading:#fabd2f;--ml-attn:#d79921;--ml-accent:#fe8019;--ml-danger:#fb4934;--ml-info:#83a598;
+ --ml-space-1:.4rem;--ml-space-2:.85rem;--ml-space-3:1.2rem;--ml-space-4:2rem;
+ --ml-font:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;
+ --ml-rule:1px dotted var(--ml-boundary);--ml-line:#ebdbb205;--ml-shadow:4px 4px 0 #0000003d;}
+*,:before,*:after{box-sizing:border-box}
+html{background:var(--ml-canvas);color:var(--ml-text);font-family:var(--ml-font);font-variant-numeric:tabular-nums}
+body{margin:0;overflow-wrap:anywhere;background-color:var(--ml-canvas);
+ background-image:linear-gradient(var(--ml-line) 1px,transparent 1px),linear-gradient(90deg,var(--ml-line) 1px,transparent 1px);
+ background-size:6px 6px;line-height:1.55}
+:focus-visible{outline:3px solid var(--ml-info);outline-offset:3px}
+a{color:var(--ml-heading);text-underline-offset:.18em;text-decoration-thickness:.12em}
+a:hover{color:var(--ml-pos)}
+.ml-nav{border-block-end:var(--ml-rule)}
+.ml-nav .row{display:flex;align-items:center;gap:.6rem;max-inline-size:92rem;margin-inline:auto;padding:.6rem 1rem}
+.brand{color:var(--ml-pos);font-weight:800;letter-spacing:.04em}
+.spacer{flex:1}
+.dot{inline-size:.6rem;block-size:.6rem;border-radius:50%;background:var(--ml-pos);box-shadow:0 0 0 3px #b8bb2630}
+.wrap{max-inline-size:92rem;margin-inline:auto;padding:0 1rem 3rem}
+h1{color:var(--ml-heading);font-size:1.6rem;letter-spacing:-.01em;margin:1.4rem 0 .2rem}
+.lede{color:var(--ml-muted);margin:0 0 1.2rem;font-size:.9rem}
+.eyebrow{color:var(--ml-pos);letter-spacing:.06em;text-transform:uppercase;font-size:.78rem;font-weight:800;margin:1.6rem 0 .4rem}
+.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,13rem),1fr));gap:.7rem;margin-block:0 1.2rem}
+.kpi .card{padding:.8rem 1rem;border:var(--ml-rule);background:var(--ml-surface);box-shadow:var(--ml-shadow)}
+.kpi .k{display:block;color:var(--ml-muted);text-transform:uppercase;letter-spacing:.05em;font-size:.68rem;font-weight:800}
+.kpi .v{display:block;color:var(--ml-heading);font-size:1.5rem;font-weight:800;margin-block:.15rem .1rem}
+.kpi .v.pos{color:var(--ml-pos)} .kpi .v.norm{color:var(--ml-text)}
+.kpi .s{display:block;color:var(--ml-muted);font-size:.74rem}
+.sec{padding:var(--ml-space-3);border:var(--ml-rule);background:var(--ml-surface);box-shadow:var(--ml-shadow);margin-block:0 1rem}
+.sec h2{margin:0 0 .2rem;color:var(--ml-heading);font-size:1.05rem}
+.sec .desc{color:var(--ml-muted);font-size:.82rem;margin:0 0 .8rem}
+table{width:100%;border-collapse:collapse;font-size:.85rem;margin-block:0 .4rem}
+th,td{text-align:left;padding:.45rem .6rem;border-block-end:var(--ml-rule);vertical-align:top}
+th{color:var(--ml-muted);text-transform:uppercase;letter-spacing:.04em;font-size:.7rem;font-weight:800;white-space:nowrap}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+.good{color:var(--ml-pos);font-weight:800}
+.bad{color:var(--ml-danger);font-weight:800}
+tr.pass td{background:#b8bb2610}
+.callout{margin:.8rem 0 .4rem;padding:.6rem .85rem;border-block-start:var(--ml-rule);background:var(--ml-raised);font-size:.84rem}
+.callout.ok{box-shadow:inset 3px 0 0 var(--ml-pos)}
+.callout.no{box-shadow:inset 3px 0 0 var(--ml-danger)}
+.callout b{color:var(--ml-heading)}
+code{background:#282828;border:1px solid var(--ml-boundary);padding:0 .3rem;font-size:.8em}
+footer{margin-top:1rem;color:var(--ml-muted);font-size:.78rem;border-block-start:var(--ml-rule);padding-block-start:.8rem}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation-duration:.01ms!important}}
+</style></head>
 <body>
-<header class="topbar" role="banner">
-  <span class="dot" aria-hidden="true"></span>
-  <span class="app">Muppet&nbsp;Labs</span>
-  <span class="crumb">prime-agent · implement/v4-cache-stable-harness</span>
-  <span class="spacer"></span>
-  <span class="badge b-green">cache-stable</span>
-</header>
-<main class="wrap" role="main">
+<nav class="ml-nav"><div class="row">
+  <a href="/"><span class="dot" aria-hidden="true" style="box-shadow:none;background:#fabd2f"></span></a>
+  <a class="brand" href="/">Muppet&nbsp;Labs</a><span class="spacer"></span>
+  <span style="color:var(--ml-heading);font-size:.85rem">/ research</span>
+</div></nav>
+<main class="wrap">
 <h1>Cache-Stable Continual Harness</h1>
-<p class="lede">Empirical cache measurements across Canti, DeepSeek &amp; Gemini 3.7 Flash — does a state change force a full prompt reprocess? · 2026-09-08</p>
+<p class="lede">Do new turns with state changes force a full prompt reprocess? Live cache measurements across <b>Canti</b>, <b>DeepSeek v4-flash</b>, and <b>Gemini 3.7 Flash</b>. · 2026-09-08</p>
 
-<div class="kpigrid">
-  <div class="kpi"><div class="k">Thesis cache–read (session)</div><div class="v green">558M</div>
-    <div class="s">DeepSeek ledger cacheRead</div></div>
-  <div class="kpi"><div class="k">Dashboard on the book</div><div class="v green">560M</div>
-    <div class="s">matches ledger ± 0.3%</div></div>
-  <div class="kpi"><div class="k">Paid DeepSeek (session)</div><div class="v dim">$3.14</div>
-    <div class="s">~1,514 calls · ~9.7M input</div></div>
-  <div class="kpi"><div class="k">Cache : input</div><div class="v blue">57 : 1</div>
-    <div class="s">cache carries ~98% of context</div></div>
+<p class="eyebrow">Thesis — production, this session</p>
+<div class="kpi">
+  <div class="card"><span class="k">cacheRead (session)</span><span class="v pos">558M</span><span class="s">DeepSeek ledger</span></div>
+  <div class="card"><span class="k">dashboard on-the-book</span><span class="v pos">560M</span><span class="s">± 0.3% of ledger</span></div>
+  <div class="card"><span class="k">paid (session)</span><span class="v norm">$3.14</span><span class="s">~1,514 calls · ~9.7M input</span></div>
+  <div class="card"><span class="k">cache : input</span><span class="v pos">57 : 1</span><span class="s">cache ~98% of context</span></div>
 </div>
 
-<section>
-  <div class="rule"><h2>Objective</h2><span class="badge b-blue">tested</span></div>
-  <p class="sub">New turns with state changes must see cache–hit growth while the whole prompt is <em>not</em> reprocessed because a state line changed.</p>
-  <div class="chipset">
-    <span class="badge b-green">stable head</span>
-    <span class="badge b-green">append-only tail delta</span>
-    <span class="badge b-blue">snapshot only at cold boundaries</span>
-  </div>
-</section>
+<div class="sec"><h2>Objective</h2>
+<div class="desc">Cache hits climb on new turns w/ state change; the whole prompt must not be reprocessed because a state line changed.</div>
+<div style="display:flex;gap:.5rem;flex-wrap:wrap;font-size:.72rem">
+  <span class="badge" style="color:var(--ml-pos);border:1px solid currentcolor;padding:.1rem .4rem">stable head</span>
+  <span class="badge" style="color:var(--ml-pos);border:1px solid currentcolor;padding:.1rem .4rem">append-only tail delta</span>
+  <span class="badge" style="color:var(--ml-info);border:1px solid currentcolor;padding:.1rem .4rem">snapshot @ cold boundary</span>
+</div></div>
 
-<section>
-  <h2>Canti (local)</h2>
-  <p class="sub">Automatic prefix cache. Shape: byte-stable head + one appended tail delta per turn (an applied refinement).</p>
-  <div class="tblwrap"><table>
-    <thead><tr><th>turn</th><th class="num">prompt</th><th class="num">cached</th><th class="num">miss</th><th>reading</th></tr></thead>
-    <tbody>
-      <tr><td>1</td><td class="num">56</td><td class="num">0</td><td class="num">56</td><td>cold start</td></tr>
-      <tr class="pass"><td>2</td><td class="num">91</td><td class="num good">52</td><td class="num">39</td><td>head cached</td></tr>
-      <tr class="pass"><td>3</td><td class="num">126</td><td class="num good">87</td><td class="num">39</td><td>miss flat</td></tr>
-      <tr class="pass"><td>4</td><td class="num">161</td><td class="num good">122</td><td class="num">39</td><td>+35/turn = new delta only</td></tr>
-      <tr class="pass"><td>5</td><td class="num">196</td><td class="num good">157</td><td class="num">39</td><td>head served from cache</td></tr>
-    </tbody>
-  </table></div>
-  <div class="callout ok"><b>Pass.</b> Cache hits climb by exactly the appended delta bytes; miss stays flat. State change does <b>not</b> reprocess the prompt.</div>
-  <h3>Counterfactual — state injected by rewriting the head each turn</h3>
-  <div class="tblwrap"><table>
-    <thead><tr><th>turn</th><th class="num">prompt</th><th class="num">cached</th><th class="num">miss</th></tr></thead>
-    <tbody><tr><td>1–5</td><td class="num">49</td><td class="num bad">0</td><td class="num bad">49</td></tr></tbody>
-  </table></div>
-  <div class="callout no"><b>Fail.</b> Rewriting the head forces a complete reprocess each turn; cache never engages.</div>
-</section>
+<div class="sec"><h2>Canti (local)</h2>
+<div class="desc">Automatic prefix cache. Byte-stable head + one appended tail delta per turn.</div>
+<table><thead><tr><th>turn</th><th class="num">prompt</th><th class="num">cached</th><th class="num">miss</th><th>reading</th></tr></thead>
+<tbody>
+<tr><td>1</td><td class="num">56</td><td class="num">0</td><td class="num">56</td><td>cold start</td></tr>
+<tr class="pass"><td>2</td><td class="num">91</td><td class="num good">52</td><td class="num">39</td><td>head cached</td></tr>
+<tr class="pass"><td>3</td><td class="num">126</td><td class="num good">87</td><td class="num">39</td><td>miss flat</td></tr>
+<tr class="pass"><td>4</td><td class="num">161</td><td class="num good">122</td><td class="num">39</td><td>+35/turn = new delta</td></tr>
+<tr class="pass"><td>5</td><td class="num">196</td><td class="num good">157</td><td class="num">39</td><td>head from cache</td></tr>
+</tbody></table>
+<div class="callout ok"><b>Pass.</b> Cache climbs by the appended delta bytes; miss stays flat &mdash; state change does not reprocess the prompt.</div>
+<div class="desc" style="margin-top:.8rem"><i>Counterfactual</i> &mdash; state injected by rewriting the head each turn:</div>
+<table><thead><tr><th>turn</th><th class="num">cached</th><th class="num">miss</th></tr></thead>
+<tbody><tr><td>1&ndash;5</td><td class="num bad">0</td><td class="num bad">49</td></tr></tbody></table>
+<div class="callout no"><b>Fail.</b> Rewriting the head reprocesses everything each turn; cache never engages.</div>
+</div>
 
-<section>
-  <h2>DeepSeek <code>v4-flash</code></h2>
-  <p class="sub">Write-before-read prefix cache: a hit is only returned for a prefix DeepSeek has already served once.</p>
-  <div class="kpigrid">
-    <div class="kpi"><div class="k">session calls</div><div class="v">1,514</div><div class="s">primary model this session</div></div>
-    <div class="kpi"><div class="k">cacheRead</div><div class="v green">558,221,824</div><div class="s">near-free (~2¢/M)</div></div>
-    <div class="kpi"><div class="k">input billed</div><div class="v dim">9,685,317</div><div class="s">$0.14/M · ~$3.14 total</div></div>
-    <div class="kpi"><div class="k">dashboard</div><div class="v green">560,076,880</div><div class="s">user-reported</div></div>
-  </div>
-  <div class="callout ok"><b>Production proof.</b> An actively working session crossed two independent books within 0.3%: the local ledger records 558,221,824 <code>cacheRead</code> tokens; the DeepSeek dashboard shows 560,076,880 “on the book.” The paid burn is ~$3.14 for ~1,514 calls — the cache does the heavy lifting.</div>
-  <h3>Identical-body repeat</h3>
-  <div class="tblwrap"><table>
-    <thead><tr><th>call</th><th class="num">hit</th><th class="num">miss</th></tr></thead>
-    <tbody><tr><td>#1</td><td class="num">0</td><td class="num">150</td></tr>
-    <tr class="pass"><td>#2</td><td class="num good">128</td><td class="num">22</td></tr>
-    <tr class="pass"><td>#3</td><td class="num good">128</td><td class="num">22</td></tr></tbody>
-  </table></div>
-  <div class="callout"><b>Stable head + appended turns.</b> DeepSeek caches the lead (~128) but each newly-grown first-send body misses once. Best under retries &amp; stable-head reuse; weakest under pure linear tail growth. That is exactly why the old churning-head workload burned — and why a stable head fixes it.</div>
-</section>
+<div class="sec"><h2>DeepSeek <code>v4-flash</code></h2>
+<div class="desc">Write-before-read prefix cache: a hit returns only for a prefix DeepSeek has already served once.</div>
+<table><thead><tr><th>identical-body repeat</th><th class="num">hit</th><th class="num">miss</th></tr></thead>
+<tbody>
+<tr><td>#1</td><td class="num">0</td><td class="num">150</td></tr>
+<tr class="pass"><td>#2</td><td class="num good">128</td><td class="num">22</td></tr>
+<tr class="pass"><td>#3</td><td class="num good">128</td><td class="num">22</td></tr>
+</tbody></table>
+<div class="callout ok"><b>Production.</b> Local ledger 558,221,824 <code>cacheRead</code> vs dashboard 560,076,880 &mdash; within 0.3%. Paid burn ~$3.14 across ~1,514 calls: the near-free cache does the heavy lifting. Best under stable-head reuse &amp; retries; weakest under pure linear tail growth (each first-send tail misses once).</div>
+<p style="font-size:.8rem;color:var(--ml-muted);margin:.5rem 0 0">That is precisely why the old churning-head workload burned, and why a byte-stable head fixes it.</p>
+</div>
 
-<section>
-  <h2>Gemini 3.7 Flash</h2>
-  <p class="sub">No automatic prefix cache — callers create one <code>CachedContent</code> (≥1024 tokens) and reference it every turn. A ~2506-token stable head was cached.</p>
-  <div class="tblwrap"><table>
-    <thead><tr><th>turn (state change appended)</th><th class="num">cachedContentHit</th><th class="num">prompt / request</th></tr></thead>
-    <tbody>
-      <tr class="pass"><td>1</td><td class="num good">2506</td><td class="num">~2526</td></tr>
-      <tr class="pass"><td>2</td><td class="num good">2506</td><td class="num">~2526</td></tr>
-      <tr class="pass"><td>3</td><td class="num good">2506</td><td class="num">~2526</td></tr>
-      <tr class="pass"><td>4</td><td class="num good">2506</td><td class="num">~2526</td></tr>
-    </tbody>
-  </table></div>
-  <div class="callout ok"><b>Pass.</b> The 2506-token stable head is served from cache every turn; only the ~20-token appended state change is new input — the cleanest demonstration.</div>
-</section>
+<div class="sec"><h2>Gemini 3.7 Flash</h2>
+<div class="desc">No automatic prefix cache &mdash; callers create one <code>CachedContent</code> (&ge;1024 tokens) and reference it per turn. A ~2506-token stable head was cached.</div>
+<table><thead><tr><th>turn (state change appended)</th><th class="num">cachedContentHit</th><th class="num">prompt/request</th></tr></thead>
+<tbody>
+<tr class="pass"><td>1</td><td class="num good">2506</td><td class="num">~2526</td></tr>
+<tr class="pass"><td>2</td><td class="num good">2506</td><td class="num">~2526</td></tr>
+<tr class="pass"><td>3</td><td class="num good">2506</td><td class="num">~2526</td></tr>
+<tr class="pass"><td>4</td><td class="num good">2506</td><td class="num">~2526</td></tr>
+</tbody></table>
+<div class="callout ok"><b>Pass.</b> The 2506-token stable head is served from cache every turn; only the ~20-token appended change is new input.</div>
+</div>
 
-<section>
-  <h2>Summary</h2>
-  <div class="tblwrap"><table>
-    <thead><tr><th>Provider</th><th>Mechanism</th><th>State change reprocesses the prompt?</th>Cache grows with appends?</th></tr></thead>
-    <tbody>
-      <tr><td>Canti (local)</td><td>auto prefix</td><td class="good">No — miss flat</td><td>Yes — climbs</td></tr>
-      <tr><td>DeepSeek v4-flash</td><td>auto prefix (write-before-read)</td><td class="good">No (head); tail misses once</td><td>Limited (steady lead)</td></tr>
-      <tr><td>Gemini 3.7 Flash</td><td>explicit CachedContent</td><td class="good">No — 2506 cached</td><td>Flat large block (strongest)</td></tr>
-    </tbody>
-  </table></div>
-</section>
+<div class="sec"><h2>Summary</h2>
+<table><thead><tr><th>Provider</th><th>Mechanism</th><th>State change reprocesses?</th><th>Cache grows with appends?</th></tr></thead>
+<tbody>
+<tr><td>Canti (local)</td><td>auto prefix</td><td class="good">No &mdash; miss flat</td><td>Yes &mdash; climbs</td></tr>
+<tr><td>DeepSeek v4-flash</td><td>auto prefix (write-then-read)</td><td class="good">No (head); tail misses once</td><td>Limited (steady lead)</td></tr>
+<tr><td>Gemini 3.7 Flash</td><td>explicit CachedContent</td><td class="good">No &mdash; 2506 cached</td><td>Flat large block (strongest)</td></tr>
+</tbody></table></div>
 
-<footer>Method: real provider API calls shaped like product turns; cache read from provider usage (<code>prompt_cache_hit_tokens</code> / <code>cachedContentTokenCount</code>). Local Canti caching is free; DeepSeek &amp; Gemini keys from the agent auth store. No secrets referenced.</footer>
-</main>
-</body>
-</html>
+<footer>Method: real provider API calls shaped like product turns; cache read from provider usage (<code>prompt_cache_hit_tokens</code> / <code>cachedContentTokenCount</code>). Keys from the agent auth store; no secrets referenced. UI: MuppetLabs Gruvbox tokens.</footer>
+</main></body></html>
