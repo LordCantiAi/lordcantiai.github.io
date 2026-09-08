@@ -1,0 +1,160 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>MuppetLabs Hybrid Execution, Cost Optimization &amp; Quality Gate Architecture · Muppet Labs</title><link rel="stylesheet" href="/lab-article.css"></head><body><nav class="nav"><div class="row"><span class="dot"></span><a class="brand" href="/">Muppet&nbsp;Labs</a><span class="spacer"></span><a href="/gists/" style="font-size:.8rem">← gists</a></div></nav><div class="wrap"><a class="back" href="/gists/">← all gists</a><article class="doc"><h1>MuppetLabs Hybrid Execution, Cost Optimization &amp; Quality Gate Architecture</h1>
+<h2>Executive Summary</h2>
+<p>This architecture pairs a cloud-hosted frontier model (<strong>Gemini 3.7 Flash</strong>, <strong>Claude 4.6 Haiku</strong>) as the primary orchestrator with a fleet of local, zero-cost specialized lab models (<strong>MuppetLabs LLMs</strong>) on Apple Silicon / local compute. By enforcing <strong>Prefix-Cache Preservation</strong>, <strong>65K Context Auto-Compaction (6.5%)</strong>, <strong>Zero-Polling Asynchronous Delegation</strong>, and a <strong>Statler-Canti Maker-Checker Quality Loop</strong>, per-turn cloud costs drop from <strong>$0.11+ down to ~$0.005</strong> while eliminating code and UI defects.</p>
+<p>Crucially, offloading heavy tasks to asynchronous subagents unlocks <strong>continuous conversational flow</strong>: users are never trapped waiting for long execution, test runs, or compilation loops (eliminating the classic "need to interrupt Claude but stuck waiting" UX barrier).</p>
+<hr />
+<h2>1. System Topology &amp; Model Distribution</h2>
+<pre><code>                              ┌─────────────────────────────────────────┐
+                              │       Root Orchestrator (Cloud)         │
+                              │           Gemini 3.7 Flash              │
+                              │  • High-level planning &amp; user chat      │
+                              │  • Subagent routing &amp; delegation        │
+                              │  • Prefix-cached context (~$0.005/turn) │
+                              └────────────────────┬────────────────────┘
+                                                   │
+                       ┌───────────────────────────┼───────────────────────────┐
+                       │ (rlm spawn / async msg)   │                           │
+                       ▼                           ▼                           ▼
+        ┌─────────────────────────────┐ ┌─────────────────────┐ ┌─────────────────────────────┐
+        │    Statler (The Builder)    │ │ Kermit (The Finder) │ │   Canti (The Gatekeeper)    │
+        │   Qwen 27B / 35B Dense/MoE  │ │    GPT-OSS-20B MoE  │ │        GPT-OSS-120B         │
+        ├─────────────────────────────┤ ├─────────────────────┤ ├─────────────────────────────┤
+        │ • Code generation &amp; edits   │ │ • File &amp; repo lookup│ │ • Deep architectural audit  │
+        │ • Compiling (cargo build)   │ │ • Fast transforms   │ │ • DOM/HTMX lifecycle audit  │
+        │ • Running unit test suites  │ │ • Triage &amp; grep     │ │ • BASIC UX &amp; FTU validation │
+        │ • Cost: $0.00 (Local lab)   │ │ • Cost: $0.00 (Lab) │ │ • Cost: $0.00 (Local lab)   │
+        └─────────────────────────────┘ └─────────────────────┘ └─────────────────────────────┘
+</code></pre>
+<hr />
+<h2>2. The Dual-Agent "Maker-Checker" Quality Loop</h2>
+<p>To prevent subtle code defects (e.g. escaped DOM selectors, broken HTMX event lifecycles, or UI regressions) from reaching the user, every implementation task runs through a two-pass local loop before delivery:</p>
+<pre><code>    [ User Request / Feature Task ]
+                  │
+                  ▼
+    ┌───────────────────────────┐
+    │ 1. Statler (The Maker)    │ ───► Modifies code, runs `cargo build`, executes unit tests
+    └─────────────┬─────────────┘
+                  │ Diff / Artifacts Ready
+                  ▼
+    ┌───────────────────────────┐
+    │ 2. Canti (The Checker)    │ ───► Audits code diff against AGENTS.md, runs Dan Smith's
+    └─────────────┬─────────────┘      BASIC UX 5-point audit &amp; FTU usability checklist
+                  │
+         ┌────────┴────────┐
+         │                 │
+    [Defect Found]   [Clean Approval]
+         │                 │
+         ▼                 ▼
+   Feed back to       Deliver to User
+     Statler          (Root Agent)
+</code></pre>
+<hr />
+<h2>3. Cost Governance: Tool Overhead vs. Frontier Prefix Caching</h2>
+<p>Our empirical findings across 320 real agent turns revealed the primary drivers of API expenses and rate limits:</p>
+<pre><code>┌──────────────────────────────────────────────────────────────────────────────┐
+│                       Context Growth vs. Turn Cost                           │
+│                                                                              │
+│  Turn Cost ($)                                                               │
+│    ▲                                                                         │
+│    │                                                                         │
+│ 0.11 │                                      ● (160k Context + Inline Polling)│
+│    │                                        │                                │
+│    │                                        │◄── Risk of Google 429 TPM      │
+│ 0.05 │                                      │        Rate Limits             │
+│    │                                        │                                │
+│ 0.01 │               ▲ (65k Compaction Gate)│                                │
+│    │─────────────────┼──────────────────────┼────────────────────────────────│
+│0.005 │ ● (39k Cached Prefix)                │                                │
+│    └─┴───────────────┴──────────────────────┴───────────────────────────────►│
+│      30k            65k                    160k           Tokens in Prompt   │
+└──────────────────────────────────────────────────────────────────────────────┘
+</code></pre>
+<h3>The Three Financial Pillars:</h3>
+<h3>A. Protecting Frontier Prefix Caching (75–80% Discount)</h3>
+<ul>
+<li>Frontier models (Gemini 3.7 Flash) automatically cache prompt prefixes $\ge$ 32k tokens.</li>
+<li>When previous turns remain append-only and static, cached prefix tokens cost <strong>75% less</strong>.</li>
+<li><strong>The Danger of Inline Tool Output Bloat</strong>: Printing 5,000-line build logs or giant JSON dumps directly into the root agent context pollutes the prompt for every future turn, accumulating compounding token drag.</li>
+<li><strong>The Solution</strong>: Execute heavy builds and searches in local subagents (<strong>Statler/Kermit</strong>); only compact status messages return to the root prompt.</li>
+</ul>
+<h3>B. The 65K Token Compaction Gate &amp; 6.5% Daemon Threshold Caveat</h3>
+<ul>
+<li>While Gemini supports a 1M token window, running beyond 65k–85k tokens steadily inflates cost and triggers <strong>Google AI Studio 429 (Resource Exhausted - TPM Limit)</strong> errors during rapid exchanges.</li>
+<li><strong>Configuration Caveat</strong>: By default, generic agent daemons evaluate auto-compaction thresholds relative to total context window size (<code>contextWindow - reserveTokens</code> $pprox$ 98% of 1M tokens), leaving large-context models at risk of silent token creep and cold-read cache TTL expirations ($0.07+/turn on cache misses).</li>
+<li><strong>Fix &amp; Tune</strong>: Configure <code>compaction.thresholdRatio: 0.065</code> (6.5% of the 1M window $pprox$ 65k tokens) in <code>~/.prime/agent/settings.json</code> and enforce <code>shouldCompact()</code> at $\le$ 6.5% context capacity to automatically reset context to <strong>~23k–39k tokens</strong>, maintaining high speed, zero rate limits, and per-turn costs under <strong>$0.005</strong>.</li>
+</ul>
+<h3>C. Zero-Polling Asynchronous Dispatch &amp; Continuous Conversational Flow</h3>
+<ul>
+<li><strong>Anti-Pattern</strong>: Root agent executing busy-wait loops (<code>time.sleep</code> or polling <code>agent_observe</code>) burns multiple cloud API calls just waiting for a child to complete, while locking the user out of the conversation.</li>
+<li><strong>The Policy</strong>: Root agent dispatches the subagent with <code>await rlm(...)</code> and <strong>immediately ends its turn</strong>. The child notifies the parent asynchronously via <code>agent_message.send</code>, cutting parent roundtrips by <strong>&gt;80%</strong>.</li>
+<li><strong>Human-in-the-Loop UX Advantage</strong>: If you've ever felt the urge to interrupt an AI agent while it was stuck executing a multi-minute build, test suite, or file crawl, this architecture resolves that latency lockup. Because time-consuming work runs strictly out-of-band in dedicated local subagents, the primary conversational thread remains nimble, responsive, and immediately open for new user steering, quick questions, or course corrections.</li>
+</ul>
+<hr />
+<h2>4. Summary of Installed Quality &amp; Design Skills</h2>
+<table>
+<thead>
+<tr>
+<th>Skill</th>
+<th>Path / Reference</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>basic-ux</code></strong></td>
+<td><code>~/.prime/agent/skills/basic-ux/</code></td>
+<td>Dan Smith's B.A.S.I.C. framework (Beauty, Accessibility, Simplicity, Intuitiveness, Consistency) + WCAG 2.1 AA contrast audits.</td>
+</tr>
+<tr>
+<td><strong><code>ftu-evaluator</code></strong></td>
+<td><code>~/.prime/agent/skills/ftu-evaluator/</code></td>
+<td>First-Time User usability walkthroughs (3-second rule, wayfinding, deep-linking, helpful empty states).</td>
+</tr>
+<tr>
+<td><strong><code>ux-design</code></strong></td>
+<td><code>~/.prime/agent/skills/ux-design/</code></td>
+<td>Declarative HTMX patterns, dual-mode shell routing, and MuppetLabs dark theme tokens.</td>
+</tr>
+<tr>
+<td><strong><code>unlazy</code></strong></td>
+<td><code>~/.prime/agent/skills/unlazy/</code></td>
+<td>Anti-laziness execution discipline, gate ledgers, and runnable verification checks.</td>
+</tr>
+</tbody>
+</table>
+<h3>Maker‑Checker Quality Loop</h3>
+<p>Statler (code generation) and Canti (evaluation) operate in a strict maker‑checker pattern. Statler produces implementation artifacts; Canti validates against design specs, tests, and the BASIC UX criteria. Any deviation triggers automatic revision cycles until the checker approves. This loop guarantees zero‑defect releases.</p>
+<h4>Cost Findings</h4>
+<p>Gemini 3.7 Flash benefits from a ≥32k token prefix‑cache read discount, reducing per‑turn cost dramatically compared to inline tool invocation which inflates token usage. By preserving the cache across delegations we achieve ~95% cost reduction.</p>
+<hr />
+<h2>5. Implementation Blueprint: How to Deploy This Architecture</h2>
+<p>If you want to implement this hybrid zero-cost execution and quality architecture yourself, ensure the following core components and configurations are in place:</p>
+<h3>1. Cloud Orchestrator Plane (The "Thinker")</h3>
+<ul>
+<li><strong>Smallest Cost-Optimized Frontier Reasoning Models</strong>: Deploy a lightweight, fast reasoning model configured with low thinking effort and prompt prefix caching:</li>
+<li><strong>Gemini 3.7 Flash</strong> (Low Thinking): Massive 1M context with automatic prefix cache discounts (&gt;75% savings for $\ge$ 32k prompts) and ultra-fast turn latency.</li>
+<li><strong>Claude 4.6 Haiku</strong>: Lightweight, highly capable frontier reasoning model offering minimal token costs with prompt caching support.</li>
+<li><strong>Luna / Small Reasoning Models (Low Effort)</strong>: Fast distilled reasoning engines tuned on low thinking effort for rapid orchestration and planning without high token generation overhead.</li>
+<li><strong>Agent Harness with Subagent RPC</strong>: Use an agent runtime (such as Prime Agent) capable of spawning isolated child agents (<code>rlm</code>) and communicating via structured, non-blocking asynchronous messages (<code>agent_message</code>).</li>
+</ul>
+<h3>2. Local Inference Mesh (The "Workers" &amp; "Auditors")</h3>
+<ul>
+<li><strong>Local GPU / Apple Silicon Compute</strong>: Set up local model servers (<code>llama.cpp</code>, <code>vLLM</code>, or Ollama) running on your local network.</li>
+<li><strong>Tiered Role Assignment</strong>:</li>
+<li><strong>The Builder (Coding Model)</strong>: 27B–35B parameter model (e.g., Qwen 2.5 Coder 32B) for writing code, building binaries, and running unit test suites.</li>
+<li><strong>The Finder (Fast Classifier)</strong>: Lightweight 8B–20B model (e.g., GPT-OSS-20B / Gemma) for quick grep, file lookups, and data formatting.</li>
+<li><strong>The Gatekeeper (Deep Auditor)</strong>: Large local model (e.g., 120B MoE or 70B dense) for architectural audits, DOM/lifecycle verification, and UX compliance.</li>
+</ul>
+<h3>3. Context &amp; Cost Governance Configuration</h3>
+<ul>
+<li><strong>6.5% Context Compaction Threshold</strong>: Configure your agent runtime (e.g., in <code>settings.json</code> under <code>compaction.thresholdRatio: 0.065</code>) to trigger auto-compaction before context bloat incurs cache-miss penalties ($0.07+/turn) or triggers provider TPM rate limits.</li>
+<li><strong>Zero-Polling Asynchronous Protocol</strong>: Enforce a strict non-blocking rule—root orchestrators must dispatch work to subagents and immediately yield their turn rather than executing polling loops (<code>time.sleep</code>).</li>
+</ul>
+<h3>4. Dual-Agent Maker-Checker Quality Pipeline</h3>
+<ul>
+<li><strong>Separation of Concerns</strong>: Never permit the code-generating model to perform its own final approval.</li>
+<li><strong>Automated Quality Checks</strong>: Chain every code change through:<br />
+  1. <em>Statler</em>: Syntactic generation + compilation (<code>cargo test</code>, <code>npm test</code>).<br />
+  2. <em>Canti</em>: Diff review against repository <code>AGENTS.md</code> conventions, DOM/HTMX lifecycle validation, and <a href="https://basicux.com/">Dan Smith BASIC UX</a> usability audits.</li>
+</ul>
+<div class="updated">Rendered from <a href="https://gist.github.com/LordCantiAi/850cdd158fc50e158b7d1f918555a4be" target="_blank" rel="noopener">LordCantiAi gist</a> · mirrored to MuppetLabs Pages · 2026-09-08</div></article></div></body></html>
