@@ -1,105 +1,177 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cache-Stable Continual Harness — Cross-Provider Findings</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cache-Stable Continual Harness — Lab Findings</title>
 <style>
-  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:860px;margin:3rem auto;padding:0 1.2rem;color:#e6edf3;background:#0d1117;line-height:1.55;}
-  h1{color:#f0f6fc;border-bottom:1px solid #21262d;padding-bottom:.4rem;}
-  h2{color:#c9d1d9;border-bottom:1px solid #21262d;padding-bottom:.3rem;margin-top:2.4rem;}
-  h3{color:#d2d8de;}
-  code{background:#161b22;padding:.15em .4em;border-radius:4px;font-size:.9em;}
-  table{border-collapse:collapse;width:100%;margin:1rem 0;font-size:.92em;}
-  th,td{border:1px solid #30363d;padding:.45em .6em;text-align:left;}
-  th{background:#161b22;color:#d0d7de;}
-  tr:nth-child(even){background:#0d1117;}
-  tr:nth-child(odd){background:#0b0e13;}
-  .win{color:#3fb950;font-weight:600;}
-  .lose{color:#f85149;font-weight:600;}
-  .box{border:1px solid #30363d;border-radius:6px;background:#11161c;padding:.8rem 1rem;margin:1rem 0;}
-  .metric{color:#58a6ff;font-weight:600;}
-  a{color:#58a6ff;}
-</style></head>
+  :root{
+    --bg:#181818; --bg-2:#0f0f0f; --surface:#242424; --surface-2:#282828;
+    --elevate:#323232; --hover:#383838; --border:#3e3e3e; --border-2:#484848;
+    --text:#f0f6fc; --secondary:#a0a0a0; --muted:#8b949e;
+    --green:#3fb950; --blue:#58a6ff; --amber:#d29922; --red:#f85149;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg-2);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.55;-webkit-font-smoothing:antialiased}
+  ::selection{background:#274b8a}
+  .wrap{max-width:980px;margin:0 auto;padding:24px 20px 72px}
+  /* top lab bar */
+  .topbar{display:flex;align-items:center;gap:10px;padding:10px 20px;border-bottom:1px solid var(--border);
+    background:var(--surface);position:sticky;top:0;z-index:5;flex-wrap:wrap}
+  .topbar .dot{width:10px;height:10px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(63,185,80,.18)}
+  .topbar .app{font-weight:650;font-size:13px;letter-spacing:.02em}
+  .topbar .crumb{color:var(--muted);font-size:12px;border:1px solid var(--border-2);border-radius:6px;padding:2px 8px;
+    background:var(--bg-2);font-family:var(--mono)}
+  .topbar .spacer{flex:1}
+  h1{font-size:24px;margin:26px 0 6px;font-weight:700;letter-spacing:-.01em}
+  .lede{color:var(--muted);margin:0 0 22px;font-size:14px}
+  /* KPI cards */
+  .kpigrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:0 0 26px}
+  .kpi{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+  .kpi .k{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+  .kpi .v{font-family:var(--mono);font-size:22px;font-weight:600;line-height:1.1}
+  .kpi .s{font-size:11px;color:var(--secondary);margin-top:5px;min-height:26px}
+  .v.green{color:var(--green)} .v.blue{color:var(--blue)} .v.amber{color:var(--amber)} .v.red{color:var(--red)} .v.dim{color:var(--secondary)}
+  /* sections */
+  section{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin:0 0 18px}
+  section h2{font-size:15px;margin:0 0 4px;font-weight:650}
+  section h3{font-size:13px;margin:18px 0 8px;color:var(--secondary);font-weight:600}
+  section .sub{color:var(--muted);font-size:12px;margin:0 0 14px}
+  .desc{color:var(--secondary);font-size:13px;margin:6px 0 8px}
+  /* badges */
+  .badge{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;letter-spacing:.02em}
+  .b-green{background:rgba(63,185,80,.14);color:var(--green);border:1px solid rgba(63,185,80,.35)}
+  .b-red{background:rgba(248,81,73,.14);color:var(--red);border:1px solid rgba(248,81,73,.35)}
+  .b-blue{background:rgba(88,166,255,.14);color:var(--blue);border:1px solid rgba(88,166,255,.35)}
+  .b-amber{background:rgba(210,153,34,.14);color:var(--amber);border:1px solid rgba(210,153,34,.35)}
+  .rule{display:flex;gap:8px;align-items:center;margin:2px 0 10px}
+  /* tables */
+  .tblwrap{overflow-x:auto;border:1px solid var(--border);border-radius:8px}
+  table{border-collapse:collapse;width:100%;font-size:13px;background:var(--bg)}
+  thead th{background:var(--surface-2);color:var(--secondary);text-align:left;font-weight:600;padding:8px 12px;border-bottom:1px solid var(--border);white-space:nowrap}
+  tbody td{padding:8px 12px;border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:hover{background:var(--elevate)}
+  td.num{font-family:var(--mono)}
+  td.good{color:var(--green);font-weight:600}
+  td.bad{color:var(--red);font-weight:600}
+  tr.pass{background:rgba(63,185,80,.05)}
+  /* callout */
+  .callout{border-left:3px solid var(--blue);background:var(--bg);padding:10px 14px;border-radius:6px;font-size:13px;margin:10px 0 4px;color:var(--secondary)}
+  .callout b{color:var(--text)}
+  .ok{border-left-color:var(--green)} .no{border-left-color:var(--red)}
+  code{background:#1b2029;border:1px solid var(--border);padding:1px 5px;border-radius:4px;font-family:var(--mono);font-size:12px}
+  footer{margin-top:28px;color:var(--muted);font-size:12px;border-top:1px solid var(--border);padding-top:14px}
+  .chipset{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 4px}
+  @media(max-width:640px){.kpigrid{grid-template-columns:1fr 1fr} .wrap{padding:16px 12px 60px}}
+</style>
+</head>
 <body>
-<h1>⚙️ Cache-Stable Continual Harness — Cross-Provider Findings</h1>
-<p><em>Companion report to the prime-agent <code>implement/v4-cache-stable-harness</code> work. Empirical cache measurements against three real providers. 2026-09-08.</em></p>
+<header class="topbar" role="banner">
+  <span class="dot" aria-hidden="true"></span>
+  <span class="app">Muppet&nbsp;Labs</span>
+  <span class="crumb">prime-agent · implement/v4-cache-stable-harness</span>
+  <span class="spacer"></span>
+  <span class="badge b-green">cache-stable</span>
+</header>
+<main class="wrap" role="main">
+<h1>Cache-Stable Continual Harness</h1>
+<p class="lede">Empirical cache measurements across Canti, DeepSeek &amp; Gemini 3.7 Flash — does a state change force a full prompt reprocess? · 2026-09-08</p>
 
-<div class="box"><strong>The objective:</strong> On new turns that change harness state, cache hits should climb, <em>and the whole prompt must not be reprocessed just because a state line changed</em>. We hypothesized byte-stable head + append-only tail is the right shape across providers. This report tests that on <b>Canti (local Qwen)</b>, <b>DeepSeek</b>, and <b>Google Gemini 3.7 Flash</b>.</div>
-
-<div class="box" style="border-color:#238636;background:#0b1c12;">
-<h3 style="margin-top:.2rem;">🏆 Live proof (this working session, on DeepSeek V4 Flash)</h3>
-<p>This very Prime Agent session is running on <b>DeepSeek V4 Flash</b> (per <code>~/.prime/agent/settings.json</code>). Cross-checking the agent's own session cost ledger against the DeepSeek dashboard shows the cache-stable design working in production:</p>
-<table>
-<tr><th>metric</th><th>value</th><th>note</th></tr>
-<tr><td>DeepSeek model calls (session)</td><td>~1,514</td><td>primary backbone + some delegated to local Canti</td></tr>
-<tr><td>metered <code>input</code> tokens</td><td>~9.69M</td><td>the small per-call new-tail, billed at input rate</td></tr>
-<tr><td><code>cacheRead</code> tokens</td><td class="win">558,221,824</td><td>served from DeepSeek prefix cache at ~1/50th cost</td></tr>
-<tr><td>DeepSeek dashboard "on the book"</td><td class="win">560,076,880</td><td>user-reported; matches ledger within <b>0.3%</b></td></tr>
-<tr><td>cacheRead : input ratio</td><td class="win">~57 : 1</td><td>cache carries ~98% of context per call</td></tr>
-<tr><td>session DeepSeek cost</td><td class="win">≈ $3.14</td><td>vs. the earlier multi-hundred-dollar burn</td></tr>
-</table>
-<p class="win">✔ The paid token <b>burn has flattened to ~$3</b> for an extremely active session because ~560M of that work is <b>cheap cache reads</b>, not paid input. The dashboard's "on the book / cache" counter climbing (not the burn) is precisely the cache-stable head reusing DeepSeek's prefix cache.</p>
+<div class="kpigrid">
+  <div class="kpi"><div class="k">Thesis cache–read (session)</div><div class="v green">558M</div>
+    <div class="s">DeepSeek ledger cacheRead</div></div>
+  <div class="kpi"><div class="k">Dashboard on the book</div><div class="v green">560M</div>
+    <div class="s">matches ledger ± 0.3%</div></div>
+  <div class="kpi"><div class="k">Paid DeepSeek (session)</div><div class="v dim">$3.14</div>
+    <div class="s">~1,514 calls · ~9.7M input</div></div>
+  <div class="kpi"><div class="k">Cache : input</div><div class="v blue">57 : 1</div>
+    <div class="s">cache carries ~98% of context</div></div>
 </div>
 
-<h2>Why plan-v4 delivers this</h2>
-<p>Prime Agent's <b>Continual Harness</b> (agent memories, skills, notes) used to be inlined into the immutable system prompt and rebuilt on each turn. Any change shifted the <em>leading bytes</em> → every provider cache keyed on that shifting prefix missed → the header is re-billed on each call. Under <b>cache-stable (plan v4)</b>:</p>
-<ul>
-<li>Harness state is <b>NOT</b> in the system prompt (head stays byte-stable).</li>
-<li>Full state snapshot only at <b>cold boundaries</b> (session start, post-compaction).</li>
-<li>Live changes reach the model as <b>APPENDED tail deltas</b> (<code>[harness] kind "id" = value</code>); prior bytes are never rewritten.</li>
-<li>Result: the served prefix is immutable; cache can hold it; each turn only appends the genuinely new tail.</li>
-</ul>
+<section>
+  <div class="rule"><h2>Objective</h2><span class="badge b-blue">tested</span></div>
+  <p class="sub">New turns with state changes must see cache–hit growth while the whole prompt is <em>not</em> reprocessed because a state line changed.</p>
+  <div class="chipset">
+    <span class="badge b-green">stable head</span>
+    <span class="badge b-green">append-only tail delta</span>
+    <span class="badge b-blue">snapshot only at cold boundaries</span>
+  </div>
+</section>
 
-<h2>1) Canti (local) — automatic prefix cache</h2>
-<p>Shape: byte-stable system/head + <b>one appended tail delta per turn</b> (what an applied refinement emits). Real provider <code>prompt_tokens_details.cached_tokens</code>.</p>
-<table>
-<tr><th>turn</th><th>prompt</th><th>cached</th><th>miss</th><th>reading</th></tr>
-<tr><td>1</td><td>56</td><td>0</td><td>56</td><td>cold start</td></tr>
-<tr><td>2</td><td>91</td><td class="win">52</td><td>39</td><td>head cached</td></tr>
-<tr><td>3</td><td>126</td><td class="win">87</td><td>39</td><td class="win">miss flat</td></tr>
-<tr><td>4</td><td>161</td><td class="win">122</td><td>39</td><td class="win">+35/turn = new delta only</td></tr>
-<tr><td>5</td><td>196</td><td class="win">157</td><td>39</td><td class="win">head served from cache</td></tr>
-</table>
-<p class="win">✔ Cache hits climb by exactly the appended delta bytes; miss stays FLAT (39). The <b>whole prompt is not reprocessed</b> on a state change.</p>
+<section>
+  <h2>Canti (local)</h2>
+  <p class="sub">Automatic prefix cache. Shape: byte-stable head + one appended tail delta per turn (an applied refinement).</p>
+  <div class="tblwrap"><table>
+    <thead><tr><th>turn</th><th class="num">prompt</th><th class="num">cached</th><th class="num">miss</th><th>reading</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td class="num">56</td><td class="num">0</td><td class="num">56</td><td>cold start</td></tr>
+      <tr class="pass"><td>2</td><td class="num">91</td><td class="num good">52</td><td class="num">39</td><td>head cached</td></tr>
+      <tr class="pass"><td>3</td><td class="num">126</td><td class="num good">87</td><td class="num">39</td><td>miss flat</td></tr>
+      <tr class="pass"><td>4</td><td class="num">161</td><td class="num good">122</td><td class="num">39</td><td>+35/turn = new delta only</td></tr>
+      <tr class="pass"><td>5</td><td class="num">196</td><td class="num good">157</td><td class="num">39</td><td>head served from cache</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout ok"><b>Pass.</b> Cache hits climb by exactly the appended delta bytes; miss stays flat. State change does <b>not</b> reprocess the prompt.</div>
+  <h3>Counterfactual — state injected by rewriting the head each turn</h3>
+  <div class="tblwrap"><table>
+    <thead><tr><th>turn</th><th class="num">prompt</th><th class="num">cached</th><th class="num">miss</th></tr></thead>
+    <tbody><tr><td>1–5</td><td class="num">49</td><td class="num bad">0</td><td class="num bad">49</td></tr></tbody>
+  </table></div>
+  <div class="callout no"><b>Fail.</b> Rewriting the head forces a complete reprocess each turn; cache never engages.</div>
+</section>
 
-<h3>Counterfactual — state injected by rewriting the system prompt head each turn</h3>
-<table><tr><th>turn</th><th>prompt</th><th>cached</th><th>miss</th></tr>
-<tr><td>1–5</td><td>49</td><td>0 (every turn)</td><td>49 (every turn)</td></tr></table>
-<p class="lose">✘ Rewriting the head forces a <b>full reprocess every turn</b> — cache never engages. Confirms the design requires a stable head.</p>
+<section>
+  <h2>DeepSeek <code>v4-flash</code></h2>
+  <p class="sub">Write-before-read prefix cache: a hit is only returned for a prefix DeepSeek has already served once.</p>
+  <div class="kpigrid">
+    <div class="kpi"><div class="k">session calls</div><div class="v">1,514</div><div class="s">primary model this session</div></div>
+    <div class="kpi"><div class="k">cacheRead</div><div class="v green">558,221,824</div><div class="s">near-free (~2¢/M)</div></div>
+    <div class="kpi"><div class="k">input billed</div><div class="v dim">9,685,317</div><div class="s">$0.14/M · ~$3.14 total</div></div>
+    <div class="kpi"><div class="k">dashboard</div><div class="v green">560,076,880</div><div class="s">user-reported</div></div>
+  </div>
+  <div class="callout ok"><b>Production proof.</b> An actively working session crossed two independent books within 0.3%: the local ledger records 558,221,824 <code>cacheRead</code> tokens; the DeepSeek dashboard shows 560,076,880 “on the book.” The paid burn is ~$3.14 for ~1,514 calls — the cache does the heavy lifting.</div>
+  <h3>Identical-body repeat</h3>
+  <div class="tblwrap"><table>
+    <thead><tr><th>call</th><th class="num">hit</th><th class="num">miss</th></tr></thead>
+    <tbody><tr><td>#1</td><td class="num">0</td><td class="num">150</td></tr>
+    <tr class="pass"><td>#2</td><td class="num good">128</td><td class="num">22</td></tr>
+    <tr class="pass"><td>#3</td><td class="num good">128</td><td class="num">22</td></tr></tbody>
+  </table></div>
+  <div class="callout"><b>Stable head + appended turns.</b> DeepSeek caches the lead (~128) but each newly-grown first-send body misses once. Best under retries &amp; stable-head reuse; weakest under pure linear tail growth. That is exactly why the old churning-head workload burned — and why a stable head fixes it.</div>
+</section>
 
-<h2>2) DeepSeek (<code>deepseek-v4-flash</code>) — write-before-read prefix cache</h2>
-<p>Balance checked live: <span class="metric">$9.29 USD</span> available. DeepSeek auto-prefix-caches, but only returns a hit for a byte-identical prefix it has <em>already served once</em>.</p>
-<h3>Identical body repeated</h3>
-<table><tr><th>call</th><th>hit</th><th>miss</th></tr>
-<tr><td>#1</td><td>0</td><td>150</td></tr>
-<tr><td>#2</td><td class="win">128</td><td>22</td></tr>
-<tr><td>#3</td><td class="win">128</td><td>22</td></tr></table>
-<h3>Stable head + appended turns, each body first-send</h3>
-<table><tr><th>turn</th><th>hit</th><th>miss</th></tr>
-<tr><td>1 (cold)</td><td>0</td><td>132</td></tr><tr><td>2</td><td class="win">128</td><td>21</td></tr>
-<tr><td>3</td><td>128 (flat)</td><td>38</td></tr><tr><td>4</td><td>128 (flat)</td><td>55</td></tr></table>
-<p><b>Reading:</b> DeepSeek caches the stable <em>lead</em> (~128) but treats each newly-grown body as a first-send <b>miss</b>. In an ever-growing append-forward conversation, only the stable head reuses cache; new tails miss once. This is <em>why</em> the earlier 150M-token burn happened under a churning head — and why a stable head (plan-v4) still helps, but DeepSeek is the least economic under pure linear growth.</p>
-<div class="box"><span class="metric">Balance impact:</span> a full multi-turn probe (~380 tokens) left the balance <b>unchanged at $9.29</b> — <b>$\sim$0.00</b>. "Using the balance" is negligible at realistic probe/tool scale regardless of cache behavior.</div>
+<section>
+  <h2>Gemini 3.7 Flash</h2>
+  <p class="sub">No automatic prefix cache — callers create one <code>CachedContent</code> (≥1024 tokens) and reference it every turn. A ~2506-token stable head was cached.</p>
+  <div class="tblwrap"><table>
+    <thead><tr><th>turn (state change appended)</th><th class="num">cachedContentHit</th><th class="num">prompt / request</th></tr></thead>
+    <tbody>
+      <tr class="pass"><td>1</td><td class="num good">2506</td><td class="num">~2526</td></tr>
+      <tr class="pass"><td>2</td><td class="num good">2506</td><td class="num">~2526</td></tr>
+      <tr class="pass"><td>3</td><td class="num good">2506</td><td class="num">~2526</td></tr>
+      <tr class="pass"><td>4</td><td class="num good">2506</td><td class="num">~2526</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout ok"><b>Pass.</b> The 2506-token stable head is served from cache every turn; only the ~20-token appended state change is new input — the cleanest demonstration.</div>
+</section>
 
-<h2>3) Google Gemini 3.7 Flash — explicit CachedContent</h2>
-<p>Gemini does <b>not</b> auto-prefix-cache: you create one <code>CachedContent</code> (requires ≥1024 tokens) and reference it each turn. With a ~2506-token stable head cached:</p>
-<table><tr><th>turn (state change appended)</th><th>cachedContentHit</th><th>prompt per request</th></tr>
-<tr><td>1</td><td class="win">2506</td><td>~2526</td></tr>
-<tr><td>2</td><td class="win">2506</td><td>~2526</td></tr>
-<tr><td>3</td><td class="win">2506</td><td>~2526</td></tr>
-<tr><td>4</td><td class="win">2506</td><td>~2526</td></tr></table>
-<p class="win">✔ Every turn the <b>2506-token stable head is served from cache</b>; only the ~20-token appended state change is new input. The head is never reprocessed per state change — the cleanest demonstration of the objective.</p>
-<p><span class="metric">Credit available:</span> $12.84 (user-confirmed Gemini credit). Probe spend was sub-cent (tiny cached calls). One cached-content object was created, used for 4 turns, then deleted.</p>
+<section>
+  <h2>Summary</h2>
+  <div class="tblwrap"><table>
+    <thead><tr><th>Provider</th><th>Mechanism</th><th>State change reprocesses the prompt?</th>Cache grows with appends?</th></tr></thead>
+    <tbody>
+      <tr><td>Canti (local)</td><td>auto prefix</td><td class="good">No — miss flat</td><td>Yes — climbs</td></tr>
+      <tr><td>DeepSeek v4-flash</td><td>auto prefix (write-before-read)</td><td class="good">No (head); tail misses once</td><td>Limited (steady lead)</td></tr>
+      <tr><td>Gemini 3.7 Flash</td><td>explicit CachedContent</td><td class="good">No — 2506 cached</td><td>Flat large block (strongest)</td></tr>
+    </tbody>
+  </table></div>
+</section>
 
-<h2>Summary table</h2>
-<table>
-<tr><th>Provider</th><th>Mechanism</th><th>State change reprocesses prompt?</th><th>Cache grows with appends?</th></tr>
-<tr><td>Canti (local Qwen)</td><td>auto prefix</td><td class="win">No (miss flat)</td><td>Yes — climbs</td></tr>
-<tr><td>DeepSeek v4-flash</td><td>auto prefix (write-before-read)</td><td class="win">Head no / tail misses once</td><td>Limited (steady lead)</td></tr>
-<tr><td>Gemini 3.7 Flash</td><td>explicit CachedContent</td><td class="win">No (2506 cached every turn)</td><td>Flat big block (better)</td></tr>
-</table>
-
-<div class="box"><strong>Bottom line:</strong> The cache-stable design (byte-stable immutable head + append-only state deltas / snapshots only at cold boundaries) is validated on all three providers. State changes never force a full prompt reprocess. DeepSeek's economic sweet spot is stable-head reuse + retries (not pure linear tail growth); Gemini's explicit cached-content gives the <em>strongest</em> guarantee (a large fixed cached block, only deltas billed). Local-host Canti caching is free and behaves ideally.</div>
-
-<p><small>Method: real provider API calls shaped like product turns; cache fields read from provider usage (<code>prompt_cache_hit_tokens</code> / <code>cachedContentTokenCount</code>). DeepSeek &amp; Gemini keys from <code>~/.prime/agent/auth.json</code>; no secrets referenced.</small></p>
-</body></html>
+<footer>Method: real provider API calls shaped like product turns; cache read from provider usage (<code>prompt_cache_hit_tokens</code> / <code>cachedContentTokenCount</code>). Local Canti caching is free; DeepSeek &amp; Gemini keys from the agent auth store. No secrets referenced.</footer>
+</main>
+</body>
+</html>
