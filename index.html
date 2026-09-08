@@ -43,6 +43,21 @@ footer{margin-block:var(--ml-space-3);padding-block-start:var(--ml-space-2);bord
 .avatar-wrap{display:grid;place-items:center;margin-block-end:1.1rem;justify-self:start}
 .avatar{inline-size:clamp(96px,22vmin,150px);block-size:auto;border-radius:16px;border:var(--ml-rule);
  box-shadow:6px 6px 0 #00000055}
+
+/* Articles */
+.articles{grid-column:1/-1;margin-block-start:.6rem}
+.topic{margin:1.4rem 0 .5rem;display:flex;align-items:center;gap:.6rem}
+.topic h2{margin:0;color:var(--ml-accent);font-size:1rem;letter-spacing:.05em;text-transform:lowercase}
+.topic .k{font-size:.7rem;color:var(--ml-muted);letter-spacing:.1em;text-transform:uppercase}
+.art-list{list-style:none;margin:0;padding:0;display:grid;gap:.5rem}
+.art-list li{display:grid;grid-template-columns:11rem 1fr auto;gap:.9rem;align-items:baseline;padding:.55rem .2rem;border-block-end:var(--ml-rule)}
+.art-list .n{color:var(--ml-muted);font-size:.7rem;letter-spacing:.08em}
+.art-list .t a{color:var(--ml-heading);text-decoration:none;box-shadow:0 1px 0 0 currentcolor}
+.art-list .t a:hover{color:var(--ml-pos)}
+.art-list .t small{display:block;color:var(--ml-muted);font-size:.78rem;margin-top:.1rem}
+.art-list .go{color:var(--ml-muted);text-decoration:none;font-size:.85rem}
+.art-list .go:hover{color:var(--ml-accent)}
+@media(max-width:640px){.art-list li{grid-template-columns:1fr;gap:.3rem}.art-list .n{display:none}}
 </style>
 </head>
 <body>
@@ -80,7 +95,29 @@ footer{margin-block:var(--ml-space-3);padding-block-start:var(--ml-space-2);bord
     <p style="margin:.5rem 0 0;font-size:.82rem;color:var(--ml-muted)">Continual Harness cache-stability across Canti / DeepSeek v4-flash / Gemini 3.7.</p>
   </div>
  </div>
- <footer>Respects robots.txt · rate-limited to 1 req/s · research &amp; analysis only — no scraping or model training.</footer>
+ 
+   <section class="articles">
+     <p class="eyebrow" style="margin-top:.4rem">From the writing desk · LordCantiAi gists</p>
+     <div class="topic"><span class="k">Topic</span><h2>AI</h2></div>
+     <ul class="art-list">
+       <li><span class="n">architecture</span>
+         <span class="t"><a href="/gists/muppetlabs-hybrid-execution-cost-optimization-quality-gate-a.html">Hybrid execution, cost optimization &amp; quality gates</a>
+         <small>Frontier orchestrator + local lab models · prefix-cache economics · maker–checker</small></span>
+         <a class="go" href="https://gist.github.com/LordCantiAi/850cdd158fc50e158b7d1f918555a4be" aria-label="view gist">gist ↗</a></li>
+     </ul>
+     <div class="topic"><span class="k">Topic</span><h2>Crypto</h2></div>
+     <ul class="art-list">
+       <li><span class="n">research</span>
+         <span class="t"><a href="/gists/xrp-ripple-research-report.html">XRP (Ripple) — research report</a>
+         <small>MAKER DD framework · March 2026</small></span>
+         <a class="go" href="https://gist.github.com/LordCantiAi/6c1dad95d17ab079e8b4dae92ce603ee" aria-label="view gist">gist ↗</a></li>
+       <li><span class="n">history</span>
+         <span class="t"><a href="/gists/the-bancor-trail.html">The Bancor Trail</a>
+         <small>How a 1944 economic theory became a 2012 digital ledger</small></span>
+         <a class="go" href="https://gist.github.com/LordCantiAi/baf4ef1910b869f919dc028d6f8ce5bf" aria-label="view gist">gist ↗</a></li>
+     </ul>
+   </section>
+   <footer>Respects robots.txt · rate-limited to 1 req/s · research &amp; analysis only — no scraping or model training.</footer>
 </main>
 </body>
 </html>
